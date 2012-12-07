@@ -1,0 +1,17 @@
+ebin
+.DS_Store
+.eunit
+*.log
+*.beam
+.erlang
+.dialyzer.plt
+**/*beam
+
+
+## emacs stuff
+src/#*
+src/.#*
+src/*~
+
+## Output from the covertool
+eunit.coverage.xml

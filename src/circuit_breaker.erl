@@ -14,6 +14,11 @@
          handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
+
+%% callbacks.
+-ignore_xref([call/2, closed/3, half_open/3, open/3,
+              start_link/2, state/1, stop/1]).
+
 -record(state, {config = [] :: [{atom(), term()}],
                 errors = 0 :: non_neg_integer()
                }).
@@ -91,7 +96,15 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
+handle_call_result({error, _Reason}, _StateName, State0) ->
+    handle_error_result(State0);
 handle_call_result({'EXIT', _Result}, _StateName, State0) ->
+    handle_error_result(State0);
+handle_call_result(_Result, closed, State) -> {closed, clr_error(State)};
+handle_call_result(_Result, open, State) -> {closed, clr_error(State)};
+handle_call_result(_Result, half_open, State) -> {closed, clr_error(State)}.
+
+handle_error_result(State0) ->
     State = inc_error(State0),
     case conf(allowed_errors, State) of
         Error when Error < State#state.errors ->
@@ -99,10 +112,7 @@ handle_call_result({'EXIT', _Result}, _StateName, State0) ->
             {open, State};
         _ ->
             {closed, State}
-    end;
-handle_call_result(_Result, closed, State) -> {closed, clr_error(State)};
-handle_call_result(_Result, open, State) -> {closed, clr_error(State)};
-handle_call_result(_Result, half_open, State) -> {closed, clr_error(State)}.
+    end.
 
 log(State, State) -> ok;
 log(Old, New) ->

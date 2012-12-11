@@ -45,7 +45,7 @@ state(Name) ->
 %%%===================================================================
 
 init([Opts]) ->
-    {ok, closed, #state{config = config(Opts)}}.
+    {ok, get_opt(Opts, start_state, closed), #state{config = config(Opts)}}.
 
 closed({call, MFA}, From, State) ->
     do_call(self(), From, MFA),
@@ -143,17 +143,15 @@ do_call(Server, From, {M,F,A}) ->
 %%% Config
 
 config(Conf) ->
-    lists:foldl(
-      fun({Key, Default}, ConfAcc) ->
-              ConfVal =
-                  case lists:keyfind(Key, 1, Conf) of
-                      {Key, Val} -> Val;
-                      false -> Default
-                  end,
-              [{Key, ConfVal}|ConfAcc]
-      end,
-      [],
+    lists:map(
+      fun({Key, Default}) -> {Key, get_opt(Conf, Key, Default)} end,
       default_configs()).
+
+get_opt(Conf, Key, Default) ->
+    case lists:keyfind(Key, 1, Conf) of
+        {Key, Val} -> Val;
+        false -> Default
+    end.
 
 default_configs() ->
     [{try_timeout, 5000},

@@ -108,7 +108,10 @@ handle_error_result(State0) ->
     State = inc_error(State0),
     case conf(allowed_errors, State) of
         Error when Error < State#state.errors ->
-            timer:send_after(conf(try_timeout, State), try_half_open),
+            case conf(try_timeout, State) of
+                false   -> ok;
+                Timeout -> timer:send_after(Timeout, try_half_open)
+            end,
             {open, State};
         _ ->
             {closed, State}

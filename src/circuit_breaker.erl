@@ -6,7 +6,7 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start_link/2, call/2, stop/1, state/1]).
+-export([start_link/2, call/2, stop/1, state/1, switch_state/2]).
 
 %% gen_fsm callbacks
 -export([init/1,
@@ -36,6 +36,9 @@ start_link(Name, Opts) ->
 stop(Name) ->
     gen_fsm:sync_send_all_state_event(Name, stop).
 
+switch_state(Name, NewStateName) ->
+    gen_fsm:sync_send_all_state_event(Name, {switch_state, NewStateName}).
+
 %% for debug purposes.
 state(Name) ->
     gen_fsm:sync_send_all_state_event(Name, state).
@@ -45,7 +48,10 @@ state(Name) ->
 %%%===================================================================
 
 init([Opts]) ->
-    {ok, get_opt(Opts, start_state, closed), #state{config = config(Opts)}}.
+    State = #state{config = config(Opts)},
+    StartState = get_opt(Opts, start_state, closed),
+    maybe_send_half_open(StartState, State),
+    {ok, StartState, State}.
 
 closed({call, MFA}, From, State) ->
     do_call(self(), From, MFA),
@@ -64,6 +70,10 @@ handle_event(Event, StateName, StateData) ->
                            [Event, StateName, StateData]),
     {next_state, StateName, StateData}.
 
+handle_sync_event({switch_state, NewStateName}, _From, StateName, StateData) ->
+    log(StateName, NewStateName),
+    maybe_send_half_open(NewStateName, StateData),
+    {reply, ok, NewStateName, StateData};
 handle_sync_event(stop, _From, StateName, StateData) ->
     log(StateName, stop),
     {stop, normal, ok, StateData};
@@ -72,6 +82,7 @@ handle_sync_event(state, _From, StateName, StateData) ->
 handle_sync_event(Event, _From, StateName, StateData) ->
     error_logger:error_msg("Got not recognized event ~p ~p ~p",
                            [Event, StateName, StateData]),
+    %% next_state on handle_sync_event/4?
     {next_state, StateName, StateData}.
 
 handle_info({call_result, Result}, StateName, State) ->
@@ -108,14 +119,18 @@ handle_error_result(State0) ->
     State = inc_error(State0),
     case conf(allowed_errors, State) of
         Error when Error < State#state.errors ->
-            case conf(try_timeout, State) of
-                false   -> ok;
-                Timeout -> timer:send_after(Timeout, try_half_open)
-            end,
+            maybe_send_half_open(open, State),
             {open, State};
         _ ->
             {closed, State}
     end.
+
+maybe_send_half_open(open, State) ->
+    case conf(try_timeout, State) of
+        false   -> ok;
+        Timeout -> timer:send_after(Timeout, try_half_open)
+    end;
+maybe_send_half_open(_MS, _State) -> ok.
 
 log(State, State) -> ok;
 log(Old, New) ->

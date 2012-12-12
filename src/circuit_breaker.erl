@@ -149,13 +149,17 @@ clr_error(State) -> State#state{errors = 0}.
 
 inc_error(State) -> State#state{errors = State#state.errors + 1}.
 
-do_call(Server, From, {M,F,A}) ->
+do_call(Server, From, Work) ->
     %% Monitor?
     proc_lib:spawn(fun() ->
-                           Result = (catch erlang:apply(M, F, A)),
+                           Result = (catch do_work(Work)),
                            Server ! {call_result, Result},
                            gen_fsm:reply(From, Result)
                    end).
+
+do_work({M,F,A}) -> erlang:apply(M, F, A);
+do_work(F) -> F().
+
 
 %%%-------------------------------------------------------------------
 %%% Config

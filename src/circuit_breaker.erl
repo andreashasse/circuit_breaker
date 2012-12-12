@@ -27,8 +27,11 @@
 %%% API
 %%%===================================================================
 
-call(Name, MFA) ->
-    gen_fsm:sync_send_event(Name, {call, MFA}).
+call(Name, Work) ->
+    case gen_fsm:sync_send_event(Name, call) of
+        ok -> do_work(Name, Work);
+        {circuit_breaker, Error} -> {circuit_breaker, Error}
+    end.
 
 start_link(Name, Opts) ->
     gen_fsm:start_link(Name, ?MODULE, [Opts], []).
@@ -53,16 +56,13 @@ init([Opts]) ->
     maybe_send_half_open(StartState, State),
     {ok, StartState, State}.
 
-closed({call, MFA}, From, State) ->
-    do_call(self(), From, MFA),
-    {next_state, closed, State}.
+closed(call, _From, State) ->
+    {reply, ok, closed, State}.
 
-half_open({call, MFA}, From, State) ->
-    do_call(self(), From, MFA),
-    log(half_open, closed),
-    {next_state, closed, State}.
+half_open(call, _From, State) ->
+    {reply, ok, closed, State}.
 
-open({call, _MFA}, _From, State) ->
+open(call, _From, State) ->
     {reply, {circuit_breaker, service_down}, open, State}.
 
 handle_event(Event, StateName, StateData) ->
@@ -149,13 +149,11 @@ clr_error(State) -> State#state{errors = 0}.
 
 inc_error(State) -> State#state{errors = State#state.errors + 1}.
 
-do_call(Server, From, Work) ->
-    %% Monitor?
-    proc_lib:spawn(fun() ->
-                           Result = (catch do_work(Work)),
-                           Server ! {call_result, Result},
-                           gen_fsm:reply(From, Result)
-                   end).
+
+do_work(Name, Work) ->
+    Result = (catch do_work(Work)),
+    Name ! {call_result, Result},
+    Result.
 
 do_work({M,F,A}) -> erlang:apply(M, F, A);
 do_work(F) -> F().

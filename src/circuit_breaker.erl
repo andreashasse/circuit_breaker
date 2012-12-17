@@ -134,10 +134,28 @@ maybe_send_half_open(_MS, _State) -> ok.
 
 log(State, State) -> ok;
 log(Old, New) ->
+    switch_alarm(New),
     error_logger:error_msg(
       "Circuit breaker ~p whiching from ~p to ~p",
       [name(), Old, New]),
     ok.
+
+%% ---------------------------------------------------------------------------
+%% ALARM HANDLING
+
+switch_alarm(closed) ->
+    alarm_handler:clear_alarm(alarm_id(name()));
+switch_alarm(open) ->
+    Name = name(),
+    alarm_handler:set_alarm({alarm_id(Name), alarm_desc(Name)});
+switch_alarm(half_open) ->
+    ok.
+
+alarm_id(Name) ->
+    {circuit_breaker, Name}.
+
+alarm_desc(Name) ->
+    list_to_binary(io_lib:format("Circuit breaker ~p open", [Name])).
 
 name() ->
     case lists:keyfind(registered_name, 1, process_info(self())) of
@@ -148,7 +166,6 @@ name() ->
 clr_error(State) -> State#state{errors = 0}.
 
 inc_error(State) -> State#state{errors = State#state.errors + 1}.
-
 
 do_work(Name, Work) ->
     Result = (catch do_work(Work)),

@@ -134,7 +134,7 @@ maybe_send_half_open(_MS, _State) -> ok.
 
 log(State, State) -> ok;
 log(Old, New) ->
-    switch_alarm(New),
+    switch_alarm(Old, New),
     error_logger:error_msg(
       "Circuit breaker ~p whiching from ~p to ~p",
       [name(), Old, New]),
@@ -143,12 +143,12 @@ log(Old, New) ->
 %% ---------------------------------------------------------------------------
 %% ALARM HANDLING
 
-switch_alarm(closed) ->
+switch_alarm(_, closed) ->
     alarm_handler:clear_alarm(alarm_id(name()));
-switch_alarm(open) ->
+switch_alarm(closed, open) ->
     Name = name(),
     alarm_handler:set_alarm({alarm_id(Name), alarm_desc(Name)});
-switch_alarm(half_open) ->
+switch_alarm(_, _) ->
     ok.
 
 alarm_id(Name) ->

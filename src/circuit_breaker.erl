@@ -93,8 +93,6 @@ handle_info(try_half_open, open, State) ->
     log(open, half_open),
     {next_state, half_open, State};
 handle_info(try_half_open, StateName, State) ->
-    error_logger:error_msg("Got try_half_open is weird state ~p ~p",
-                           [StateName, State]),
     {next_state, StateName, State}.
 
 terminate(_Reason, _StateName, _State) ->

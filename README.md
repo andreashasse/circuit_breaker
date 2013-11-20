@@ -1,4 +1,4 @@
-# circuit_breaker
+# Circuit Breaker
 
 This is a simple circuit breaker.
 

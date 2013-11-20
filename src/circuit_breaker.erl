@@ -256,11 +256,13 @@ not_two_error_test_() ->
 
 setup(Conf) ->
     fun() ->
+            application:start(sasl),
             {ok, _} = circuit_breaker:start_link({local, tester}, Conf),
             []
     end.
 
 cleanup(_Conf) ->
-    ok = circuit_breaker:stop(tester).
+    ok = circuit_breaker:stop(tester),
+    application:start(stop).
 
 -endif.

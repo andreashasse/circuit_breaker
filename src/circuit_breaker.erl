@@ -160,7 +160,7 @@ alarm_desc(Name) ->
     list_to_binary(io_lib:format("Circuit breaker ~p open", [Name])).
 
 name() ->
-    case lists:keyfind(registered_name, 1, process_info(self())) of
+    case process_info(self(), registered_name) of
         {registered_name, Name} -> Name;
         false -> self()
     end.
@@ -176,7 +176,6 @@ do_work(Name, Work) ->
 
 do_work({M,F,A}) -> erlang:apply(M, F, A);
 do_work(F) -> F().
-
 
 %%%-------------------------------------------------------------------
 %%% Config

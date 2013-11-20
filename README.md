@@ -1,10 +1,13 @@
 # circuit_breaker
 
 This is a simple circuit breaker.
+
 Pros: Doesn't copy the payload to the circuit breaker process.
+
 Cons: Not well tested, might have perfomance bottlenecks.
 
-Start one circuir_breaker per thing you want to protect. You are responsible for supervising the circuit breaker yourself.
+Start one circuit_breaker per thing you want to protect. 
+You are responsible for supervising the circuit breaker yourself.
 
 ## Options when starting
 

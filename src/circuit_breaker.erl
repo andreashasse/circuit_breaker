@@ -256,6 +256,21 @@ not_two_error_test_() ->
      [?_test(Tester())]
     }.
 
+manual_switch_test_() ->
+    Tester =
+        fun() ->
+                ?assertEqual(1, conf(allowed_errors, element(2, state(tester)))),
+                ?assertEqual(0.0, test_ok_call()),
+                ?assertMatch({'EXIT', _}, test_crash_call()),
+                ?assertMatch({'EXIT', _}, test_crash_call()),
+                ?assertEqual({circuit_breaker, service_down}, test_ok_call()),
+                ?assertEqual(ok, circuit_breaker:switch_state(tester, closed)),
+                ?assertEqual(0.0, test_ok_call())
+        end,
+    {setup, setup([{allowed_errors, 1}]), fun cleanup/1,
+     [?_test(Tester())]
+    }.
+
 setup(Conf) ->
     fun() ->
             application:start(sasl),

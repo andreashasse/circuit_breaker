@@ -1,4 +1,5 @@
 # Circuit Breaker
+[![Build Status](https://travis-ci.org/anha0825/circuit_breaker.png?branch=master)](https://travis-ci.org/anha0825/circuit_breaker)
 
 This is a simple circuit breaker.
 

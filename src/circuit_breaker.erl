@@ -19,6 +19,9 @@
 -ignore_xref([call/2, closed/3, half_open/3, open/3,
               start_link/2, state/1, stop/1]).
 
+%% Manual interaction with system.
+-ignore_xref([switch_state/2]).
+
 -record(state, {config = [] :: [{atom(), term()}],
                 errors = 0 :: non_neg_integer()
                }).
